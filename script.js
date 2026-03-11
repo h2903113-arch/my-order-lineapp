@@ -48,7 +48,6 @@ window.addEventListener('load', async () => {
     
     console.log("App 啟動完成，目前身分：" + userName);
 });
-}
 
 // --- 4. 畫面渲染與操作功能 ---
 function saveCurrentInputs() {
@@ -275,6 +274,7 @@ function renderHistory() {
         </div>`;
     });
 }
+
 
 
 
