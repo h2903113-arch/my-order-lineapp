@@ -1,5 +1,5 @@
 // --- 1. 定義變數與 API 網址 ---
-const LIFF_ID = "2009338166"; // 👈 新增這行，請換成你申請到的 ID
+const LIFF_ID = "2009416875"; // 👈 新增這行，請換成你申請到的 ID
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz5cmtn5JDbKuBwSVkpSjk1bLrH6B0z-WoqCcF_V_u21mU9ig0SIUunsPBGepvs3IyfzA/exec" // 記得填入部署後的網址
 let products = [
     { name: "胡蘿蔔", price: 40, unit: "台斤", cat: "根莖類" },
@@ -275,6 +275,7 @@ function renderHistory() {
         </div>`;
     });
 }
+
 
 
 
