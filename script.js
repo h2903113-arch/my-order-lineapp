@@ -29,21 +29,39 @@ window.addEventListener('load', () => {
     console.log("App 已啟動，當前使用者：" + userName);
 });
 
-// --- 3. 雲端同步功能 ---
-function syncMenuFromCloud() {
-    fetch(GAS_URL)
-        .then(res => res.json())
-        .then(data => {
-            if (data && data.length > 0) {
-                products = data; 
-                console.log("雲端菜單同步成功");
-            }
-            renderProducts("全部品項");
-        })
-        .catch(err => {
-            console.error("雲端同步失敗，使用預設菜單:", err);
-            renderProducts("全部品項");
-        });
+// --- 2. 啟動區塊 (LIFF 整合版) ---
+window.addEventListener('load', async () => {
+    // 1. 初始化 LIFF (記得在最上方定義 const LIFF_ID = "你的ID")
+    try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (liff.isLoggedIn()) {
+            // 已經登入，直接抓取個人資料
+            const profile = await liff.getProfile();
+            userName = profile.displayName; 
+            console.log("LINE 登入成功，使用者：" + userName);
+        } else {
+            // 未登入 LINE，啟動登入流程 (這會跳轉到 LINE 登入頁)
+            // 如果你想讓一般網頁也能看，可以先不強制 login
+            liff.login(); 
+        }
+    } catch (err) {
+        console.warn("LIFF 初始化失敗或不在 LINE 環境中:", err);
+        // 失敗時的後備方案 (例如開發測試時)
+        userName = "測試客戶-陳小美"; 
+    }
+
+    // 2. 更新畫面上的名字顯示
+    const displayEl = document.getElementById('display-name');
+    if (displayEl) {
+        displayEl.innerText = userName;
+    }
+
+    // 3. 同步雲端菜單
+    syncMenuFromCloud(); 
+    
+    console.log("App 啟動完成，目前身分：" + userName);
+});
 }
 
 // --- 4. 畫面渲染與操作功能 ---
@@ -271,3 +289,4 @@ function renderHistory() {
         </div>`;
     });
 }
+
