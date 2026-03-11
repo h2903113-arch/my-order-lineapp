@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>能高小幫手</title>
+    <link rel="stylesheet" href="styles.css">
+    
+</head>
+<body>
+    <header id="header-title">今日訂單</header>
+    <div id="user-info" style="font-size: 15px; font-weight: normal; margin-top: 7px;">
+        客戶：<span id="display-name"></span> 
+        </div>
+    <div class="main-container">
+        <div id="order-page" class="page-content active-page">
+            <aside id="sidebar">
+                <div class="category-item active" onclick="changeCategory('全部品項', this)">全部品項</div>
+                <div class="category-item" onclick="changeCategory('根莖類', this)">根莖類</div>
+                <div class="category-item" onclick="changeCategory('蔬菜類', this)">蔬菜類</div>
+                <div class="category-item" onclick="changeCategory('水果類', this)">水果類</div>
+                <div class="category-item" onclick="changeCategory('菇類', this)">菇類</div>
+                <div class="category-item" onclick="changeCategory('乾貨類', this)">乾貨類</div>
+            </aside>
+            <main>
+                <div class="section-title">
+                    <span id="cat-label">全品項</span>
+                    <span class="sub-label">埔里能高山-今日菜單</span>
+                </div>
+                <div id="product-list"></div> </main>
+        </div>
+
+        <div id="cart-page" class="page-content">
+            <div id="temp-order-list"></div>
+            <div class="history-note">請您留意由此只能保存訂單成立後5日內的訂單</div>
+        </div>
+
+        <div id="history-page" class="page-content">
+            <div id="final-history-list"></div>
+            <div class="history-note">請您留意由此只能保存訂單成立後5日內的訂單</div>
+        </div>
+
+        <div id="report-page" class="page-content report-padding">
+            <div class="report-card new-report">
+                <h3 style="color:var(--error-red)">新的 回報</h3>
+                <label>銷貨單號 <span style="color:red">*</span></label>
+                <input type="text" id="rep-id" class="report-input" placeholder="請輸入單號">
+                <label>扣款品項與原因 <span style="color:red">*</span></label>
+                <textarea id="rep-items" class="report-input" rows="5" placeholder="請填寫您要回報的事項..."></textarea>
+                <button class="btn-green-submit" onclick="submitReport()">新增回報</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="detail-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">訂單明細</h3>
+            <div id="detail-items-list"></div>
+            <button class="btn-close-modal" onclick="closeModal()">關閉</button>
+        </div>
+    </div>
+
+    <footer>
+        <div class="nav-icons">
+            <div class="nav-icon" onclick="showPage('history')">🕒</div>
+            <div class="nav-icon" onclick="showPage('order')">🛒</div>
+            <div class="nav-icon" onclick="showPage('report')">✈️</div>
+        </div>
+        <button id="main-submit-btn" class="btn-submit-orange" onclick="addToCart()">加入訂單 ▶</button>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
