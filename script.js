@@ -14,21 +14,6 @@ let tempOrders = [];
 let finalHistory = []; 
 let userName = "未知客戶"; 
 
-// --- 2. 啟動區塊 ---
-window.addEventListener('load', () => {
-    // 設定客戶名稱 (後續可接入 LIFF)
-    userName = "測試客戶-陳小美"; 
-    const displayEl = document.getElementById('display-name');
-    if (displayEl) {
-        displayEl.innerText = userName;
-    }
-
-    // 同步雲端菜單 (如果 GAS 還沒弄好，會先顯示上面的預設 products)
-    syncMenuFromCloud(); 
-    
-    console.log("App 已啟動，當前使用者：" + userName);
-});
-
 // --- 2. 啟動區塊 (LIFF 整合版) ---
 window.addEventListener('load', async () => {
     // 1. 初始化 LIFF (記得在最上方定義 const LIFF_ID = "你的ID")
@@ -289,4 +274,5 @@ function renderHistory() {
         </div>`;
     });
 }
+
 
