@@ -204,7 +204,7 @@ function renderCart() {
 }
 
 function renderHistory() {
-    const list = document.getElementById('history-list');
+    const list = document.getElementById('final-history-list');
     if(!list) return;
     list.innerHTML = finalHistory.length === 0 ? "<p class='empty-msg'>尚無歷史紀錄</p>" : "";
     finalHistory.forEach(order => {
@@ -239,6 +239,7 @@ async function submitReport() {
         showPage('order'); 
     } catch (err) { alert("傳送失敗"); }
 }
+
 
 
 
