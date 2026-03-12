@@ -168,35 +168,32 @@ async function finalizeOrder(idx, orderData) {
 }
 
 function showPage(pageId) {
+    // 隱藏所有頁面，顯示目標頁面
     document.querySelectorAll('.page-content').forEach(p => p.style.display = 'none');
     const target = document.getElementById(pageId + '-page');
     if (target) target.style.display = (pageId === 'order') ? 'flex' : 'block';
     
-    document.getElementById('header-title').innerText = 
-        (pageId==='order'?"今日訂單":pageId==='cart'?"待送出清單":pageId==='history'?"訂購記錄":"問題回報");
-    
+    // 更新標題
+    const titles = { order: "今日訂單", cart: "待送出清單", history: "訂購記錄", report: "瑕疵回報" };
+    document.getElementById('header-title').innerText = titles[pageId] || "能高小幫手";
+
+    // 控制「加入訂單」大按鈕只在首頁出現
     const mainBtn = document.getElementById('main-submit-btn');
     if (mainBtn) mainBtn.style.display = (pageId === 'order') ? 'block' : 'none';
-   
-    // 4. --- 新增在這裡：根據頁面觸發功能 ---
+
+    // --- 關鍵修改：當切換到 history 時，立即執行繪製 ---
     if (pageId === 'history') {
-        renderHistory(); // 只要切換到歷史紀錄頁，就立刻畫出卡片
+        console.log("正在渲染歷史紀錄...");
+        renderHistory(); 
     }
-    
-    if (pageId === 'cart') {
-        renderCart(); // 如果你有寫購物車渲染函數，也順便放在這
-    }
-    
-    // --- 新功能：讓底部選單文字根據頁面變色 ---
+
+    // 更新底部導覽列顏色
     document.querySelectorAll('.nav-icon').forEach(icon => {
         icon.classList.remove('active-nav');
-        // 如果按鈕的 onclick 包含該 pageId，就給它高亮
         if (icon.getAttribute('onclick').includes(pageId)) {
             icon.classList.add('active-nav');
         }
     });
-    if (pageId === 'cart') renderCart();
-    if (pageId === 'history') renderHistory();
 }
 
 function renderCart() {
@@ -278,6 +275,7 @@ async function submitReport() {
         showPage('order'); 
     } catch (err) { alert("傳送失敗"); }
 }
+
 
 
 
