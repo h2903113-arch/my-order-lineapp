@@ -1,182 +1,67 @@
 :root {
-    --primary-green: #2e6417;
-    --active-light-green: #4ca626;
-    --submit-orange: #ff751f;
-    --side-gray: #737373;
-    --error-red: #cc0000;
+    --primary-green: #4a6741;
+    --submit-orange: #ff7043;
 }
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+body { font-family: sans-serif; margin: 0; background: #f4f4f4; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-header { background: var(--primary-green); color: white; padding: 15px; font-size: 20px; font-weight: bold; }
+header { background: var(--primary-green); color: white; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; }
 
-.main-container { flex: 1; position: relative; overflow: hidden; }
+.main-container { flex: 1; position: relative; overflow-y: auto; }
 
-/* 分頁切換控制 */
-.page-content { display: none; width: 100%; height: 100%; position: absolute; }
+.page-content { display: none; height: 100%; width: 100%; }
 .active-page { display: flex; }
 
-#sidebar { width: 90px; background: var(--side-gray); height: 100%; overflow-y: auto; }
-.category-item { padding: 20px 5px; text-align: center; color: white; border-bottom: 0.5px solid #888; }
-.category-item.active { background: white; color: var(--primary-green); border-left: 5px solid var(--active-light-green); }
+/* 側邊欄樣式 */
+#sidebar { width: 80px; background: #eee; height: 100%; border-right: 1px solid #ddd; }
+.category-item { padding: 15px 5px; text-align: center; font-size: 14px; cursor: pointer; border-bottom: 1px solid #ddd; }
+.category-item.active { background: white; color: var(--primary-green); font-weight: bold; border-left: 4px solid var(--primary-green); }
 
-main { flex: 1; padding: 10px; overflow-y: auto; }
-.item-card { border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.item-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
-.qty-input { width: 45%; padding: 8px; border-radius: 20px; border: 1px solid #ccc; text-align: center; }
+/* 產品列表樣式 */
+#product-list-container { flex: 1; overflow-y: auto; background: white; }
+.item-card { padding: 12px; border-bottom: 1px solid #eee; }
+.item-name { font-weight: bold; font-size: 16px; }
+.item-info { font-size: 12px; color: #666; margin: 4px 0; }
+.item-controls { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.qty-input { width: 60px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
 
-/* 單位切換彈出層 */
-.unit-selector-wrapper { position: relative; width: 45%; }
-.unit-display-btn { background: var(--primary-green); color: white; border-radius: 20px; padding: 8px; text-align: center; }
-.unit-options {
-    display: none; position: absolute; bottom: 100%; left: 0; width: 100%;
-    background: white; border: 1px solid #ddd; z-index: 10;
-}
-.unit-option { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
-
-footer { height: 70px; display: flex; border-top: 1px solid #ddd; }
-.nav-icons { flex: 1; display: flex; justify-content: space-around; align-items: center; font-size: 24px; }
-.btn-submit-orange { width: 140px; background: var(--submit-orange); color: white; border: none; font-weight: bold; }
-
-.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
-.modal-content { background: white; padding: 20px; border-radius: 10px; width: 80%; }
-
-.report-padding { padding: 20px; }
-.report-input { width: 100%; margin: 10px 0; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
-.btn-green-submit { width: 100%; background: var(--primary-green); color: white; padding: 12px; border: none; border-radius: 20px; }
-
-.history-done { border-left: 5px solid #28a745 !important; }
-.status-tag { background: #28a745; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; float: right; }
-.order-time { font-size: 12px; color: #666; margin-bottom: 5px; }
-.detail-list { margin: 5px 0; padding-left: 20px; font-size: 14px; color: #333; }
-.empty-msg { padding: 40px; text-align: center; color: #999; }
-
-/* 底部選單容器優化 */
-.nav-icons {
+/* 浮動按鈕關鍵樣式 */
+#main-submit-btn {
+    position: fixed !important;
+    right: 20px;
+    bottom: 80px;
+    z-index: 999;
+    width: 80px !important;
+    height: 80px !important;
+    border-radius: 50% !important;
+    background-color: var(--submit-orange) !important;
+    color: white !important;
+    font-size: 18px !important;
+    font-weight: 900 !important; /* 極粗字體 */
+    border: none !important;
     display: flex;
-    justify-content: space-around;
     align-items: center;
-    width: 100%;
-    max-width: 600px; /* 限制寬度，避免在大螢幕拉得太開 */
-    margin: 0 auto;
-}
-
-/* 文字按鈕樣式 */
-.nav-icon {
-    flex: 1; /* 讓三個按鈕平分寬度 */
+    justify-content: center;
     text-align: center;
-    padding: 12px 5px;
-    font-size: 15px; /* 合適的文字大小 */
-    font-weight: 600;
-    color: #555;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 8px;
-    margin: 0 4px;
-    white-space: nowrap; /* 確保文字不換行 */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: transform 0.1s;
 }
+#main-submit-btn:active { transform: scale(0.9); }
 
-/* 點擊效果與當前頁面標示 */
-.nav-icon:active {
-    background-color: rgba(40, 167, 69, 0.1);
-    color: #28a745;
-}
+/* 底部選單樣式 */
+footer { background: white; border-top: 1px solid #ddd; padding: 10px 0; }
+.nav-icons { display: flex; justify-content: space-around; }
+.nav-icon { font-size: 14px; color: #888; cursor: pointer; padding: 5px; }
+.nav-icon.active-nav { color: var(--primary-green); font-weight: bold; border-bottom: 2px solid var(--primary-green); }
 
-/* 如果想讓當前選中的文字變色，可以在 JS 切換頁面時加上此 class */
-.nav-icon.active-nav {
-    color: #28a745;
-    border-bottom: 3px solid #28a745;
-    border-radius: 0;
-}
+/* 歷史紀錄卡片 */
+.history-card { background: white; margin: 12px; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 5px solid var(--primary-green); }
+.history-header { display: flex; justify-content: space-between; align-items: center; }
+.detail-list { padding-left: 20px; font-size: 14px; color: #444; }
 
-/* 響應式微調：針對極小螢幕手機 (如 iPhone SE) */
-@media (max-width: 350px) {
-    .nav-icon {
-        font-size: 13px;
-        padding: 10px 2px;
-    }
-}
-
-/* 1. 底部導覽文字化與高亮樣式 */
-.nav-icon {
-    flex: 1; text-align: center; font-size: 15px; font-weight: 600; 
-    color: #666; padding: 12px 0; cursor: pointer; transition: 0.2s;
-}
-.nav-icon.active-nav {
-    color: #4a6741; border-bottom: 3px solid #4a6741;
-}
-
-/* --- 訂單紀錄卡片美化 --- */
-.history-card {
-    background: white;
-    border-radius: 12px;
-    padding: 16px;
-    margin: 15px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    border-left: 6px solid #4a6741; /* 左側綠條 */
-    position: relative;
-    text-align: left; /* 確保內容靠左 */
-}
-
-.history-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.order-title {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #333;
-}
-
-/* 橘色狀態標籤 (對應截圖) */
-.status-badge {
-    background: #e67e22;
-    color: white;
-    padding: 3px 12px;
-    border-radius: 15px;
-    font-size: 12px;
-}
-
-.order-time-info {
-    font-size: 13px;
-    color: #888;
-    line-height: 1.4;
-}
-
-.detail-list {
-    margin: 10px 0 0 0;
-    padding: 10px 0 0 18px;
-    font-size: 14px;
-    color: #444;
-    border-top: 1px dashed #eee;
-}
-
-/* 底部導覽文字高亮樣式 */
-.nav-icon {
-    flex: 1;
-    text-align: center;
-    font-size: 15px;
-    font-weight: 600;
-    color: #666;
-    padding: 12px 0;
-    cursor: pointer;
-}
-
-.nav-icon.active-nav {
-    color: #4a6741;
-    border-bottom: 3px solid #4a6741;
-}
-
-/* 提示文字樣式 */
-.history-note {
-    text-align: center;
-    font-size: 12px;
-    color: #999;
-    padding: 20px;
-}
+/* 回報頁面 */
+.report-card { padding: 20px; background: white; margin: 15px; border-radius: 8px; }
+.report-input, input, textarea { width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; display: block; box-sizing: border-box; }
+.btn-green-submit { width: 100%; padding: 12px; background: var(--primary-green); color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; }
 
 
