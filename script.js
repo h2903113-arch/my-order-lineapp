@@ -60,19 +60,30 @@ function renderProducts(category) {
     const list = document.getElementById('product-list');
     if (!list) return;
     list.innerHTML = ""; 
+    
     const filtered = (category === "全部品項") ? products : products.filter(p => p.cat === category);
+    
     filtered.forEach(p => {
         const cached = currentInputCache[p.name] || { qty: "", unit: p.unit };
         list.innerHTML += `
             <div class="item-card">
                 <div class="item-header">
                     <div class="item-name">${p.name}</div>
-                    <div class="item-info">規格:${p.unit} | 單價:${p.price}元</div>
+                    <div class="item-info">單價: ${p.price}元 / ${p.unit}</div>
                 </div>
+                
                 <div class="item-controls">
-                    <input type="number" class="qty-input" placeholder="0" data-name="${p.name}" value="${cached.qty}">
+                    <input type="number" 
+                           class="qty-input" 
+                           placeholder="0" 
+                           data-name="${p.name}" 
+                           value="${cached.qty}"
+                           onchange="saveCurrentInputs()">
+                           
                     <div class="unit-selector-wrapper">
-                        <div class="unit-display-btn" onclick="toggleUnitOptions(this)">${cached.unit} ▼</div>
+                        <div class="unit-display-btn" onclick="toggleUnitOptions(this)">
+                            ${cached.unit} ▼
+                        </div>
                         <div class="unit-options">
                             <div class="unit-option" onclick="selectUnit(this, '台斤')">台斤</div>
                             <div class="unit-option" onclick="selectUnit(this, '單包')">單包</div>
@@ -242,6 +253,7 @@ async function submitReport() {
         showPage('order'); 
     } catch (err) { alert("傳送失敗"); }
 }
+
 
 
 
