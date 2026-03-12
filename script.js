@@ -13,6 +13,7 @@ let products = [
 
 let currentInputCache = {}; 
 let tempOrders = [];   
+// 這行會嘗試從手機讀取舊資料，如果沒紀錄才會給空陣列 []
 let finalHistory = JSON.parse(localStorage.getItem('ng_history')) || []; 
 let userName = "未知客戶"; 
 
@@ -34,6 +35,7 @@ window.addEventListener('load', async () => {
     syncMenuFromCloud();
 }); 
 
+// --- 3. 同步雲端菜單 ---
 async function syncMenuFromCloud() {
     try {
         const response = await fetch(GAS_URL + "?type=getMenu");
@@ -45,7 +47,20 @@ async function syncMenuFromCloud() {
     renderProducts("全部品項");
 }
 
-// --- 3. 介面渲染與操作 ---
+// --- 4. 渲染與操作 ---
+function saveCurrentInputs() {
+    document.querySelectorAll('.item-card').forEach(card => {
+        const input = card.querySelector('.qty-input');
+        if (!input) return;
+        const name = input.getAttribute('data-name');
+        const qty = input.value;
+        const unitEl = card.querySelector('.unit-display-btn');
+        const unit = unitEl ? unitEl.innerText.replace(' ▼','') : "台斤";
+        if (qty > 0) currentInputCache[name] = { qty: qty, unit: unit };
+        else delete currentInputCache[name];
+    });
+}
+
 function renderProducts(category) {
     const list = document.getElementById('product-list');
     if (!list) return;
@@ -73,19 +88,6 @@ function renderProducts(category) {
     });
 }
 
-function saveCurrentInputs() {
-    document.querySelectorAll('.item-card').forEach(card => {
-        const input = card.querySelector('.qty-input');
-        if (!input) return;
-        const name = input.getAttribute('data-name');
-        const qty = input.value;
-        const unitEl = card.querySelector('.unit-display-btn');
-        const unit = unitEl ? unitEl.innerText.replace(' ▼','') : "台斤";
-        if (qty > 0) currentInputCache[name] = { qty: qty, unit: unit };
-        else delete currentInputCache[name];
-    });
-}
-
 function changeCategory(cat, el) {
     saveCurrentInputs();
     document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
@@ -106,8 +108,7 @@ function selectUnit(element, unit) {
     saveCurrentInputs();
 }
 
-// --- 4. 訂單核心邏輯 (最重要修改區) ---
-
+// --- 5. 訂單核心邏輯 ---
 function addToCart() {
     saveCurrentInputs();
     let items = Object.keys(currentInputCache).map(name => {
@@ -117,8 +118,7 @@ function addToCart() {
     
     if (items.length > 0) {
         const orderId = "ORD-" + Date.now().toString().slice(-6);
-        // 統一存入 ISO 格式，方便後續 new Date() 解析
-        tempOrders.push({ id: orderId, time: new Date().toISOString(), items: items, user: userName });
+        tempOrders.push({ id: orderId, time: new Date().toLocaleString(), items: items, user: userName });
         currentInputCache = {};
         alert("已加入待送出清單");
         showPage('cart');
@@ -129,110 +129,42 @@ async function sendOrder(id) {
     const idx = tempOrders.findIndex(o => o.id === id);
     if (idx === -1) return;
     const order = tempOrders[idx];
-    
     alert("正在連線 Google 雲端送出訂單...");
 
     try {
-        // 先複製一份乾淨的資料送給後台
-        const payload = JSON.stringify(order);
         await fetch(GAS_URL, {
-            method: "POST", 
-            mode: "no-cors",
+            method: "POST", mode: "no-cors",
             headers: { "Content-Type": "text/plain" },
-            body: payload
+            body: JSON.stringify(order)
         });
-        // 發送成功後執行完成邏輯
-        finalizeOrder(idx); 
+        finalizeOrder(idx, order); 
     } catch (err) {
-        console.error("發送失敗:", err);
-        finalizeOrder(idx); 
+        finalizeOrder(idx, order); 
     }
 }
 
-function finalizeOrder(idx) {
+async function finalizeOrder(idx, orderData) {
     const finishedOrder = tempOrders.splice(idx, 1)[0];
     
-    // 轉換成顯示用的時間格式：YYYY/MM/DD HH:MM
-    const now = new Date();
-    const displayTime = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
-    const historyEntry = {
-        ...finishedOrder,
-        time: displayTime 
-    };
-
-    finalHistory.unshift(historyEntry);
-    if (finalHistory.length > 20) finalHistory.pop();
+    // 1. 將新訂單存入手機長期記憶體 (LocalStorage)
+    finalHistory.unshift(finishedOrder); // 新的排前面
+    if (finalHistory.length > 20) finalHistory.pop(); // 保持數量在 20 筆內
     localStorage.setItem('ng_history', JSON.stringify(finalHistory));
 
-    // 發送 LINE 通知
+    // 2. 自動發送 LINE 訊息回報 (讓業務在群組也看到)
     if (liff.isInClient()) {
-        liff.sendMessages([{
-            type: "text",
-            text: `✅ 【能高訂單成功】\n客戶：${userName}\n單號：${finishedOrder.id}\n時間：${displayTime}\n\n訂單已進入後台處理中！`
-        }]).catch(e => console.log("LINE通知失敗"));
+        try {
+            await liff.sendMessages([{
+                type: "text",
+                text: `✅ 【能高訂單成功】\n客戶：${userName}\n單號：${orderData.id}\n時間：${orderData.time}\n\n訂單已進入後台處理中！`
+            }]);
+        } catch (e) { console.log("LINE 訊息發送受阻，但不影響紀錄儲存"); }
     }
 
-    alert("訂單傳送成功！");
-    showPage('history');
-}
-
-// --- 5. 渲染與頁面控制 ---
-
-function renderHistory() {
-    const list = document.getElementById('final-history-list');
-    if (!list) return;
-
-    // 清理 5 日前的資料
-    const now = new Date().getTime();
-    const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
-    finalHistory = finalHistory.filter(order => {
-        const orderDate = new Date(order.time).getTime();
-        if (isNaN(orderDate)) return true; // 若格式無法解析則保留
-        return (now - orderDate) < fiveDaysInMs;
-    });
-    localStorage.setItem('ng_history', JSON.stringify(finalHistory));
-
-    if (finalHistory.length === 0) {
-        list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">目前尚無 5 日內的訂購紀錄</div>`;
-        return;
-    }
-
-    list.innerHTML = "";
-    finalHistory.forEach((order, index) => {
-        const itemsHtml = order.items.map(i => `<li>${i.name} - ${i.qty}${i.unit}</li>`).join('');
-        const timeParts = order.time.split(' ');
-
-        list.innerHTML += `
-            <div class="history-card">
-                <div class="history-header">
-                    <span class="order-title">訂單 ${finalHistory.length - index}</span>
-                    <span class="status-badge">成功送出</span>
-                </div>
-                <div class="order-time-info">
-                    成立日期：${timeParts[0]}<br>
-                    成立時間：${timeParts[1] || ''}
-                </div>
-                <ul class="detail-list">${itemsHtml}</ul>
-                <div style="text-align:right; margin-top:10px;">
-                    <button class="check-btn" style="background:#4a6741; color:white; border:none; padding:5px 12px; border-radius:5px; font-size:12px;">查看訂單</button>
-                </div>
-            </div>`;
-    });
-}
-
-function renderCart() {
-    const list = document.getElementById('temp-order-list');
-    if (!list) return;
-    list.innerHTML = tempOrders.length === 0 ? "<p style='text-align:center; padding:50px; color:#999;'>尚無待送出訂單</p>" : "";
-    tempOrders.forEach(order => {
-        let itemSum = order.items.map(i => `${i.name} x${i.qty}${i.unit}`).join(', ');
-        list.innerHTML += `<div class="history-card">
-            <div class="order-id" style="font-weight:bold; margin-bottom:5px;">單號: ${order.id}</div>
-            <div class="order-detail" style="font-size:14px; color:#666; margin-bottom:10px;">${itemSum}</div>
-            <button onclick="sendOrder('${order.id}')" class="btn-green-sm" style="background:#4a6741; color:white; border:none; padding:8px 15px; border-radius:5px; width:100%;">確認送出訂單</button>
-        </div>`;
-    });
+    alert("訂單傳送成功！已存入您的歷史紀錄。");
+    
+    // 3. 關鍵：自動跳轉到紀錄頁面，這會觸發 renderHistory()
+    showPage('history'); 
 }
 
 function showPage(pageId) {
@@ -240,18 +172,51 @@ function showPage(pageId) {
     const target = document.getElementById(pageId + '-page');
     if (target) target.style.display = (pageId === 'order') ? 'flex' : 'block';
     
-    const titles = { order: "今日訂單", cart: "待送出清單", history: "訂購記錄", report: "瑕疵回報" };
-    document.getElementById('header-title').innerText = titles[pageId] || "能高小幫手";
-
+    document.getElementById('header-title').innerText = 
+        (pageId==='order'?"今日訂單":pageId==='cart'?"待送出清單":pageId==='history'?"訂購記錄":"問題回報");
+    
     const mainBtn = document.getElementById('main-submit-btn');
     if (mainBtn) mainBtn.style.display = (pageId === 'order') ? 'block' : 'none';
-
-    if (pageId === 'history') renderHistory();
-    if (pageId === 'cart') renderCart();
-
+    // --- 新功能：讓底部選單文字根據頁面變色 ---
     document.querySelectorAll('.nav-icon').forEach(icon => {
         icon.classList.remove('active-nav');
-        if (icon.getAttribute('onclick').includes(pageId)) icon.classList.add('active-nav');
+        // 如果按鈕的 onclick 包含該 pageId，就給它高亮
+        if (icon.getAttribute('onclick').includes(pageId)) {
+            icon.classList.add('active-nav');
+        }
+    });
+    if (pageId === 'cart') renderCart();
+    if (pageId === 'history') renderHistory();
+}
+
+function renderCart() {
+    const list = document.getElementById('temp-order-list');
+    if (!list) return;
+    list.innerHTML = tempOrders.length === 0 ? "<p class='empty-msg'>尚無待送出訂單</p>" : "";
+    tempOrders.forEach(order => {
+        let itemSum = order.items.map(i => `${i.name} x${i.qty}${i.unit}`).join(', ');
+        list.innerHTML += `<div class="history-card">
+            <div class="order-id">單號: ${order.id}</div>
+            <div class="order-detail">${itemSum}</div>
+            <button onclick="sendOrder('${order.id}')" class="btn-green-sm">確認送出訂單</button>
+        </div>`;
+    });
+}
+
+function renderHistory() {
+    const list = document.getElementById('history-list');
+    if(!list) return;
+    list.innerHTML = finalHistory.length === 0 ? "<p class='empty-msg'>尚無歷史紀錄</p>" : "";
+    finalHistory.forEach(order => {
+        let itemDetails = order.items.map(i => `<li>${i.name} - ${i.qty}${i.unit}</li>`).join('');
+        list.innerHTML += `<div class="history-card history-done">
+            <div class="history-header">
+                <span class="order-id">單號: ${order.id}</span>
+                <span class="status-tag">已同步雲端</span>
+            </div>
+            <div class="order-time">${order.time}</div>
+            <ul class="detail-list">${itemDetails}</ul>
+        </div>`;
     });
 }
 
@@ -274,6 +239,12 @@ async function submitReport() {
         showPage('order'); 
     } catch (err) { alert("傳送失敗"); }
 }
+
+
+
+
+
+
 
 
 
