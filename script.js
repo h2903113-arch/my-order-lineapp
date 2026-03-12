@@ -1,10 +1,14 @@
 const LIFF_ID = "2009416875-6D00wRVu"; 
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz5cmtn5JDbKuBwSVkpSjk1bLrH6B0z-WoqCcF_V_u21mU9ig0SIUunsPBGepvs3IyfzA/exec";
 
+// 預設菜單，包含菇類與乾貨類
 let products = [
     { name: "胡蘿蔔", price: 40, unit: "台斤", cat: "根莖類" },
     { name: "地瓜", price: 50, unit: "台斤", cat: "根莖類" },
-    { name: "高麗菜", price: 35, unit: "台斤", cat: "蔬菜類" }
+    { name: "高麗菜", price: 35, unit: "台斤", cat: "蔬菜類" },
+    { name: "小白菜", price: 30, unit: "單包", cat: "蔬菜類" },
+    { name: "富士蘋果", price: 120, unit: "台斤", cat: "水果類" },
+    { name: "乾香菇", price: 80, unit: "單包100g", cat: "乾貨類" }
 ];
 
 let currentInputCache = {}; 
@@ -142,7 +146,7 @@ function finalizeOrder(idx) {
     
     const historyEntry = { ...finishedOrder, time: timeStr };
 
-    // 修正：使用 unshift 而非覆蓋
+    // 修正舊版錯誤：使用 unshift 增加到陣列最前面，而非覆蓋
     finalHistory.unshift(historyEntry); 
     if (finalHistory.length > 20) finalHistory.pop(); 
     localStorage.setItem('ng_history', JSON.stringify(finalHistory));
@@ -208,9 +212,10 @@ function showPage(pageId) {
     const titles = {order:"今日訂單", cart:"待送出清單", history:"訂購記錄", report:"瑕疵回報"};
     document.getElementById('header-title').innerText = titles[pageId];
     
-    // 控制浮動按鈕顯示
+    // 控制橘色圓形浮動按鈕顯示
     const mainBtn = document.getElementById('main-submit-btn');
     if (mainBtn) {
+        // 只有在 order 頁面時才顯示為 flex (圓形置中用)，其餘隱藏
         mainBtn.style.setProperty('display', pageId === 'order' ? 'flex' : 'none', 'important');
     }
 
@@ -237,6 +242,7 @@ async function submitReport() {
         showPage('order'); 
     } catch (err) { alert("傳送失敗"); }
 }
+
 
 
 
