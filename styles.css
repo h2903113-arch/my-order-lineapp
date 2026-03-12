@@ -52,3 +52,48 @@ footer { height: 70px; display: flex; border-top: 1px solid #ddd; }
 .detail-list { margin: 5px 0; padding-left: 20px; font-size: 14px; color: #333; }
 .empty-msg { padding: 40px; text-align: center; color: #999; }
 
+/* 底部選單容器優化 */
+.nav-icons {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    max-width: 600px; /* 限制寬度，避免在大螢幕拉得太開 */
+    margin: 0 auto;
+}
+
+/* 文字按鈕樣式 */
+.nav-icon {
+    flex: 1; /* 讓三個按鈕平分寬度 */
+    text-align: center;
+    padding: 12px 5px;
+    font-size: 15px; /* 合適的文字大小 */
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    margin: 0 4px;
+    white-space: nowrap; /* 確保文字不換行 */
+}
+
+/* 點擊效果與當前頁面標示 */
+.nav-icon:active {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+/* 如果想讓當前選中的文字變色，可以在 JS 切換頁面時加上此 class */
+.nav-icon.active-nav {
+    color: #28a745;
+    border-bottom: 3px solid #28a745;
+    border-radius: 0;
+}
+
+/* 響應式微調：針對極小螢幕手機 (如 iPhone SE) */
+@media (max-width: 350px) {
+    .nav-icon {
+        font-size: 13px;
+        padding: 10px 2px;
+    }
+}
