@@ -13,7 +13,7 @@ header { background: var(--primary-green); color: white; padding: 15px; text-ali
 .active-page { display: flex; }
 
 /* 側邊欄樣式 */
-#sidebar { width: 80px; background: #eee; height: 100%; border-right: 1px solid #ddd; }
+#sidebar { width: 80px; background: #eee; height: 100%; border-right: 1px solid #ddd; overflow-y: auto; }
 .category-item { padding: 15px 5px; text-align: center; font-size: 14px; cursor: pointer; border-bottom: 1px solid #ddd; }
 .category-item.active { background: white; color: var(--primary-green); font-weight: bold; border-left: 4px solid var(--primary-green); }
 
@@ -25,15 +25,15 @@ header { background: var(--primary-green); color: white; padding: 15px; text-ali
 .item-controls { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .qty-input { width: 60px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
 
-/* 浮動按鈕關鍵樣式 */
+/* 橘色圓形移動漂浮按鈕關鍵樣式 */
 #main-submit-btn {
     position: fixed !important;
     right: 20px;
-    bottom: 80px;
-    z-index: 999;
-    width: 80px !important;
+    bottom: 80px;           /* 避開導覽列 */
+    z-index: 999;           /* 確保在最上層 */
+    width: 80px !important;  /* 圓形直徑 */
     height: 80px !important;
-    border-radius: 50% !important;
+    border-radius: 50% !important; /* 設為圓形 */
     background-color: var(--submit-orange) !important;
     color: white !important;
     font-size: 18px !important;
@@ -43,13 +43,14 @@ header { background: var(--primary-green); color: white; padding: 15px; text-ali
     align-items: center;
     justify-content: center;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    transition: transform 0.1s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3); /* 增加陰影感 */
+    transition: transform 0.1s, background-color 0.2s;
+    line-height: 1.2;       /* 調整行高讓兩行文字置中 */
 }
-#main-submit-btn:active { transform: scale(0.9); }
+#main-submit-btn:active { transform: scale(0.9); background-color: #f4511e !important; }
 
 /* 底部選單樣式 */
-footer { background: white; border-top: 1px solid #ddd; padding: 10px 0; }
+footer { background: white; border-top: 1px solid #ddd; padding: 10px 0; z-index: 998; }
 .nav-icons { display: flex; justify-content: space-around; }
 .nav-icon { font-size: 14px; color: #888; cursor: pointer; padding: 5px; }
 .nav-icon.active-nav { color: var(--primary-green); font-weight: bold; border-bottom: 2px solid var(--primary-green); }
