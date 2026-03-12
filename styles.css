@@ -65,4 +65,83 @@ footer { background: white; border-top: 1px solid #ddd; padding: 10px 0; z-index
 .report-input, input, textarea { width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; display: block; box-sizing: border-box; }
 .btn-green-submit { width: 100%; padding: 12px; background: var(--primary-green); color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; }
 
+/* 品項卡片：改回左右分布 */
+.item-card {
+    background: white;
+    display: flex;
+    justify-content: space-between; /* 左右撐開 */
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.item-header {
+    flex: 1; /* 佔據左側空間 */
+}
+
+.item-name {
+    font-size: 17px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.item-info {
+    font-size: 13px;
+    color: #888;
+}
+
+/* 右側控制區 */
+.item-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.qty-input {
+    width: 65px;
+    height: 35px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 16px;
+}
+
+/* 綠色長方圓角單位按鈕 */
+.unit-selector-wrapper {
+    position: relative;
+}
+
+.unit-display-btn {
+    background-color: #4a6741; /* 標準綠色 */
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px; /* 圓角長方形 */
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 60px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* 下拉選單樣式 */
+.unit-options {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 40px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    z-index: 100;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.unit-option {
+    padding: 10px 20px;
+    border-bottom: 1px solid #eee;
+    white-space: nowrap;
+}
+
+.unit-option:last-child { border: none; }
 
