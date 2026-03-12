@@ -129,18 +129,79 @@ async function sendOrder(id) {
     const idx = tempOrders.findIndex(o => o.id === id);
     if (idx === -1) return;
     const order = tempOrders[idx];
+    
+    // 這裡維持你原本後台能收到的邏輯
     alert("正在連線 Google 雲端送出訂單...");
 
     try {
         await fetch(GAS_URL, {
-            method: "POST", mode: "no-cors",
+            method: "POST", 
+            mode: "no-cors",
             headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify(order)
+            body: JSON.stringify(order) // 確保發送給後台的是原始 order
         });
+        // 成功後才執行後續存檔
         finalizeOrder(idx, order); 
     } catch (err) {
+        console.error("發送失敗:", err);
+        // 如果失敗也想存紀錄，可以保留這行；若不希望沒成功的單出現在歷史，就刪掉這行
         finalizeOrder(idx, order); 
     }
+}
+
+function finalizeOrder(idx, orderData) {
+    // 1. 從待送出清單移除
+    const finishedOrder = tempOrders.splice(idx, 1)[0];
+    
+    // 2. 格式化時間 (為了讓歷史紀錄卡片好看)
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    // 3. 建立一個專門存歷史的物件，不影響發送給後台的資料
+    const historyEntry = {
+        ...finishedOrder,
+        time: timeStr // 覆蓋或新增漂亮的格式
+    };
+
+    // 4. 存入本地儲存
+    finalHistory.unshift(historyEntry);
+    if (finalHistory.length > 20) finalHistory.pop();
+    localStorage.setItem('ng_history', JSON.stringify(finalHistory));
+
+    alert("訂單傳送成功！");
+    
+    // 5. 強制跳轉並渲染
+    showPage('history');
+}
+
+// 確保 renderHistory 的 ID 與 HTML 對齊
+function renderHistory() {
+    const list = document.getElementById('final-history-list');
+    if (!list) return;
+
+    if (finalHistory.length === 0) {
+        list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">目前尚無 5 日內的訂購紀錄</div>`;
+        return;
+    }
+
+    list.innerHTML = "";
+    finalHistory.forEach((order, index) => {
+        const itemsHtml = order.items.map(i => `<li>${i.name} - ${i.qty}${i.unit}</li>`).join('');
+        const timeArray = order.time.split(' ');
+
+        list.innerHTML += `
+            <div class="history-card">
+                <div class="history-header">
+                    <span class="order-title">訂單 ${finalHistory.length - index}</span>
+                    <span class="status-badge">成功送出</span>
+                </div>
+                <div class="order-time-info">
+                    成立日期：${timeArray[0]}<br>
+                    成立時間：${timeArray[1] || ''}
+                </div>
+                <ul class="detail-list">${itemsHtml}</ul>
+            </div>`;
+    });
 }
 
 async function finalizeOrder(idx, orderData) {
@@ -282,6 +343,7 @@ async function submitReport() {
         showPage('order'); 
     } catch (err) { alert("傳送失敗"); }
 }
+
 
 
 
