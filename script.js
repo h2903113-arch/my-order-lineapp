@@ -13,7 +13,7 @@ let products = [
 
 let currentInputCache = {}; 
 let tempOrders = [];   
-// 從手機儲存空間讀取歷史紀錄，若無則為空陣列
+// 這行會嘗試從手機讀取舊資料，如果沒紀錄才會給空陣列 []
 let finalHistory = JSON.parse(localStorage.getItem('ng_history')) || []; 
 let userName = "未知客戶"; 
 
@@ -146,23 +146,25 @@ async function sendOrder(id) {
 async function finalizeOrder(idx, orderData) {
     const finishedOrder = tempOrders.splice(idx, 1)[0];
     
-    // 關鍵：將訂單存入手機長期記憶體
+    // 1. 將新訂單存入手機長期記憶體 (LocalStorage)
     finalHistory.unshift(finishedOrder); // 新的排前面
-    if (finalHistory.length > 20) finalHistory.pop(); // 最多存20筆
+    if (finalHistory.length > 20) finalHistory.pop(); // 保持數量在 20 筆內
     localStorage.setItem('ng_history', JSON.stringify(finalHistory));
 
-    // 自動發送 LINE 訊息回報
+    // 2. 自動發送 LINE 訊息回報 (讓業務在群組也看到)
     if (liff.isInClient()) {
         try {
             await liff.sendMessages([{
                 type: "text",
                 text: `✅ 【能高訂單成功】\n客戶：${userName}\n單號：${orderData.id}\n時間：${orderData.time}\n\n訂單已進入後台處理中！`
             }]);
-        } catch (e) { console.log("訊息傳送受阻"); }
+        } catch (e) { console.log("LINE 訊息發送受阻，但不影響紀錄儲存"); }
     }
 
     alert("訂單傳送成功！已存入您的歷史紀錄。");
-    showPage('history'); // 自動導向到紀錄頁面
+    
+    // 3. 關鍵：自動跳轉到紀錄頁面，這會觸發 renderHistory()
+    showPage('history'); 
 }
 
 function showPage(pageId) {
@@ -237,6 +239,7 @@ async function submitReport() {
         showPage('order'); 
     } catch (err) { alert("傳送失敗"); }
 }
+
 
 
 
