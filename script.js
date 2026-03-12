@@ -1,7 +1,7 @@
 const LIFF_ID = "2009416875-6D00wRVu"; 
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz5cmtn5JDbKuBwSVkpSjk1bLrH6B0z-WoqCcF_V_u21mU9ig0SIUunsPBGepvs3IyfzA/exec";
 
-// 預設菜單，包含菇類與乾貨類
+// 預設菜單
 let products = [
     { name: "胡蘿蔔", price: 40, unit: "台斤", cat: "根莖類" },
     { name: "地瓜", price: 50, unit: "台斤", cat: "根莖類" },
@@ -16,6 +16,7 @@ let tempOrders = [];
 let finalHistory = JSON.parse(localStorage.getItem('ng_history')) || []; 
 let userName = "未知客戶"; 
 
+// --- 2. 啟動區塊 (直接取代原本的 window.addEventListener 與 syncMenuFromCloud) ---
 window.addEventListener('load', async () => {
     try {
         await liff.init({ liffId: LIFF_ID });
@@ -24,14 +25,34 @@ window.addEventListener('load', async () => {
             userName = profile.displayName;
         }
     } catch (err) {
+        console.warn("LIFF 啟動失敗", err);
         userName = "測試客戶"; 
     }
-    document.getElementById('display-name').innerText = userName;
-    syncMenuFromCloud();
-    // 初始化顯示頁面
-    showPage('order');
+    
+    const displayEl = document.getElementById('display-name');
+    if (displayEl) displayEl.innerText = userName;
+
+    // 1. 重要：加上 await 確保菜單抓完才往下走
+    await syncMenuFromCloud();
+
+    // 2. 解析 URL 參數 (Deep Linking)
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetPage = urlParams.get('page'); 
+
+    // 3. 判斷要進入哪一個分頁
+    if (targetPage === 'history') {
+        showPage('history');
+    } else if (targetPage === 'cart') {
+        showPage('cart');
+    } else if (targetPage === 'report') {
+        showPage('report');
+    } else {
+        // 如果沒有參數，或是參數不在名單內，預設回首頁
+        showPage('order');
+    }
 }); 
 
+// 這裡也要記得加上 async，才能配合上面的 await
 async function syncMenuFromCloud() {
     try {
         const response = await fetch(GAS_URL + "?type=getMenu");
@@ -39,7 +60,10 @@ async function syncMenuFromCloud() {
             const cloudProducts = await response.json();
             if (cloudProducts.length > 0) products = cloudProducts;
         }
-    } catch (err) { console.warn("使用預設菜單"); }
+    } catch (err) { 
+        console.warn("使用預設菜單"); 
+    }
+    // 渲染初始畫面
     renderProducts("全部品項");
 }
 
@@ -253,6 +277,7 @@ async function submitReport() {
         showPage('order'); 
     } catch (err) { alert("傳送失敗"); }
 }
+
 
 
 
