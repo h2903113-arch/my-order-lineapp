@@ -97,3 +97,24 @@ footer { height: 70px; display: flex; border-top: 1px solid #ddd; }
         padding: 10px 2px;
     }
 }
+
+/* 1. 底部導覽文字化與高亮樣式 */
+.nav-icon {
+    flex: 1; text-align: center; font-size: 15px; font-weight: 600; 
+    color: #666; padding: 12px 0; cursor: pointer; transition: 0.2s;
+}
+.nav-icon.active-nav {
+    color: #4a6741; border-bottom: 3px solid #4a6741;
+}
+
+/* 2. 訂單紀錄卡片美化 */
+.history-card {
+    background: white; border-radius: 15px; padding: 16px; margin: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 6px solid #4a6741;
+}
+.history-header { display: flex; justify-content: space-between; align-items: center; }
+.status-badge {
+    background: #e67e22; color: white; padding: 3px 12px;
+    border-radius: 12px; font-size: 12px;
+}
+.detail-list { border-top: 1px dashed #eee; padding: 10px 0 0 20px; font-size: 14px; margin-top: 10px; }
