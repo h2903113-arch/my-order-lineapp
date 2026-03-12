@@ -180,10 +180,100 @@ function finalizeOrder(idx) {
 // --- 5. 渲染與頁面控制 ---
 
 function renderHistory() {
-    const list =
+    const list = document.getElementById('final-history-list');
+    if (!list) return;
 
+    // 清理 5 日前的資料
+    const now = new Date().getTime();
+    const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
+    finalHistory = finalHistory.filter(order => {
+        const orderDate = new Date(order.time).getTime();
+        if (isNaN(orderDate)) return true; // 若格式無法解析則保留
+        return (now - orderDate) < fiveDaysInMs;
+    });
+    localStorage.setItem('ng_history', JSON.stringify(finalHistory));
 
+    if (finalHistory.length === 0) {
+        list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">目前尚無 5 日內的訂購紀錄</div>`;
+        return;
+    }
 
+    list.innerHTML = "";
+    finalHistory.forEach((order, index) => {
+        const itemsHtml = order.items.map(i => `<li>${i.name} - ${i.qty}${i.unit}</li>`).join('');
+        const timeParts = order.time.split(' ');
+
+        list.innerHTML += `
+            <div class="history-card">
+                <div class="history-header">
+                    <span class="order-title">訂單 ${finalHistory.length - index}</span>
+                    <span class="status-badge">成功送出</span>
+                </div>
+                <div class="order-time-info">
+                    成立日期：${timeParts[0]}<br>
+                    成立時間：${timeParts[1] || ''}
+                </div>
+                <ul class="detail-list">${itemsHtml}</ul>
+                <div style="text-align:right; margin-top:10px;">
+                    <button class="check-btn" style="background:#4a6741; color:white; border:none; padding:5px 12px; border-radius:5px; font-size:12px;">查看訂單</button>
+                </div>
+            </div>`;
+    });
+}
+
+function renderCart() {
+    const list = document.getElementById('temp-order-list');
+    if (!list) return;
+    list.innerHTML = tempOrders.length === 0 ? "<p style='text-align:center; padding:50px; color:#999;'>尚無待送出訂單</p>" : "";
+    tempOrders.forEach(order => {
+        let itemSum = order.items.map(i => `${i.name} x${i.qty}${i.unit}`).join(', ');
+        list.innerHTML += `<div class="history-card">
+            <div class="order-id" style="font-weight:bold; margin-bottom:5px;">單號: ${order.id}</div>
+            <div class="order-detail" style="font-size:14px; color:#666; margin-bottom:10px;">${itemSum}</div>
+            <button onclick="sendOrder('${order.id}')" class="btn-green-sm" style="background:#4a6741; color:white; border:none; padding:8px 15px; border-radius:5px; width:100%;">確認送出訂單</button>
+        </div>`;
+    });
+}
+
+function showPage(pageId) {
+    document.querySelectorAll('.page-content').forEach(p => p.style.display = 'none');
+    const target = document.getElementById(pageId + '-page');
+    if (target) target.style.display = (pageId === 'order') ? 'flex' : 'block';
+    
+    const titles = { order: "今日訂單", cart: "待送出清單", history: "訂購記錄", report: "瑕疵回報" };
+    document.getElementById('header-title').innerText = titles[pageId] || "能高小幫手";
+
+    const mainBtn = document.getElementById('main-submit-btn');
+    if (mainBtn) mainBtn.style.display = (pageId === 'order') ? 'block' : 'none';
+
+    if (pageId === 'history') renderHistory();
+    if (pageId === 'cart') renderCart();
+
+    document.querySelectorAll('.nav-icon').forEach(icon => {
+        icon.classList.remove('active-nav');
+        if (icon.getAttribute('onclick').includes(pageId)) icon.classList.add('active-nav');
+    });
+}
+
+// --- 6. 問題回報 ---
+async function submitReport() {
+    const idValue = document.getElementById('rep-id').value.trim();
+    const contentValue = document.getElementById('rep-items').value.trim();
+    if (!idValue || !contentValue) { alert("請填寫完整資訊"); return; }
+    
+    alert("正在連線回報系統...");
+    try {
+        await fetch(GAS_URL, {
+            method: "POST", mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({ type: "report", user: userName, orderId: idValue, content: contentValue })
+        });
+        alert("回報成功！");
+        document.getElementById('rep-id').value = ""; 
+        document.getElementById('rep-items').value = "";
+        showPage('order'); 
+    } catch (err) { alert("傳送失敗"); }
+}
 
 
 
