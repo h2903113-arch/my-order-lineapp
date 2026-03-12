@@ -179,7 +179,7 @@ footer { height: 70px; display: flex; border-top: 1px solid #ddd; }
     padding: 20px;
 }
 
-#main-submit-btn {
+.main-submit-btn {
     /* --- 尺寸與間距 --- */
     height: 70px !important;         /* 增加按鈕高度 */
     width: 90%;                      /* 寬度佔螢幕 90% */
@@ -203,7 +203,8 @@ footer { height: 70px; display: flex; border-top: 1px solid #ddd; }
 }
 
 /* 點擊按鈕時的視覺回饋 */
-#main-submit-btn:active {
+.main-submit-btn:active {
     transform: scale(0.96);          /* 點擊時輕微縮小 */
     box-shadow: 0 2px 8px rgba(0,0,0,0.15); /* 陰影變小，像被壓下去 */
 }
+
