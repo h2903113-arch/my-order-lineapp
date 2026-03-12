@@ -204,19 +204,38 @@ function renderCart() {
 }
 
 function renderHistory() {
-    const list = document.getElementById('history-list');
-    if(!list) return;
-    list.innerHTML = finalHistory.length === 0 ? "<p class='empty-msg'>尚無歷史紀錄</p>" : "";
-    finalHistory.forEach(order => {
-        let itemDetails = order.items.map(i => `<li>${i.name} - ${i.qty}${i.unit}</li>`).join('');
-        list.innerHTML += `<div class="history-card history-done">
-            <div class="history-header">
-                <span class="order-id">單號: ${order.id}</span>
-                <span class="status-tag">已同步雲端</span>
-            </div>
-            <div class="order-time">${order.time}</div>
-            <ul class="detail-list">${itemDetails}</ul>
-        </div>`;
+    const list = document.getElementById('final-history-list'); // 對應 HTML id
+    if (!list) return;
+
+    // --- 5日自動清理 ---
+    const now = new Date().getTime();
+    const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
+    finalHistory = finalHistory.filter(order => {
+        const orderDate = new Date(order.time).getTime();
+        return (now - orderDate) < fiveDaysInMs;
+    });
+    localStorage.setItem('ng_history', JSON.stringify(finalHistory));
+
+    if (finalHistory.length === 0) {
+        list.innerHTML = `<div class="empty-msg" style="text-align:center; padding:50px; color:#999;">目前尚無紀錄</div>`;
+        return;
+    }
+
+    list.innerHTML = "";
+    finalHistory.forEach((order, index) => {
+        const itemsHtml = order.items.map(i => `<li>${i.name} - ${i.qty}${i.unit}</li>`).join('');
+        list.innerHTML += `
+            <div class="history-card">
+                <div class="history-header">
+                    <span class="order-title">訂單 ${finalHistory.length - index}</span>
+                    <span class="status-badge">成功送出</span>
+                </div>
+                <div class="order-time-info">
+                    成立日期：${order.time.split(' ')[0]}<br>
+                    成立時間：${order.time.split(' ')[1]}
+                </div>
+                <ul class="detail-list">${itemsHtml}</ul>
+            </div>`;
     });
 }
 
@@ -239,6 +258,7 @@ async function submitReport() {
         showPage('order'); 
     } catch (err) { alert("傳送失敗"); }
 }
+
 
 
 
