@@ -178,3 +178,32 @@ footer { height: 70px; display: flex; border-top: 1px solid #ddd; }
     color: #999;
     padding: 20px;
 }
+
+#main-submit-btn {
+    /* --- 尺寸與間距 --- */
+    height: 70px !important;         /* 增加按鈕高度 */
+    width: 90%;                      /* 寬度佔螢幕 90% */
+    padding: 10px 20px;              /* 內距 */
+    
+    /* --- 字體設定 --- */
+    font-size: 24px !important;      /* 放大字體 */
+    font-weight: 900 !important;      /* 極粗體 (100-900，900最粗) */
+    letter-spacing: 2px;             /* 字與字之間的間距 */
+    
+    /* --- 外觀設定 --- */
+    color: #ffffff;                  /* 字體顏色：白色 */
+    background-color: #4a6741;       /* 保持您的森林綠色 */
+    border: none;                    /* 去除邊框 */
+    border-radius: 35px;             /* 圓角設為高度的一半可呈現膠囊狀 */
+    
+    /* --- 陰影與動畫 --- */
+    box-shadow: 0 6px 15px rgba(0,0,0,0.2); /* 增加陰影層次感 */
+    transition: all 0.2s ease;       /* 增加動畫平滑度 */
+    cursor: pointer;                 /* 滑鼠經過顯示手型 */
+}
+
+/* 點擊按鈕時的視覺回饋 */
+#main-submit-btn:active {
+    transform: scale(0.96);          /* 點擊時輕微縮小 */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15); /* 陰影變小，像被壓下去 */
+}
