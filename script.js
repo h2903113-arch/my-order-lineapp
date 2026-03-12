@@ -1,4 +1,4 @@
-// --- 1. 定義變數與 API 網址 (全域唯一) ---
+// --- 1. 定義變數與 API 網址 ---
 const LIFF_ID = "2009416875-6D00wRVu"; 
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz5cmtn5JDbKuBwSVkpSjk1bLrH6B0z-WoqCcF_V_u21mU9ig0SIUunsPBGepvs3IyfzA/exec";
 
@@ -13,61 +13,41 @@ let products = [
 
 let currentInputCache = {}; 
 let tempOrders = [];   
-let finalHistory = []; 
+// 從手機儲存空間讀取歷史紀錄，若無則為空陣列
+let finalHistory = JSON.parse(localStorage.getItem('ng_history')) || []; 
 let userName = "未知客戶"; 
 
 // --- 2. 啟動區塊 ---
 window.addEventListener('load', async () => {
-    console.log("App 啟動中...");
-    
     try {
-        // 1. 初始化 LIFF
         await liff.init({ liffId: LIFF_ID });
-
         if (liff.isLoggedIn()) {
             const profile = await liff.getProfile();
             userName = profile.displayName;
-            console.log("LINE 登入成功：" + userName);
-        } else {
-            console.log("目前為非登入狀態，建議在 LINE App 中開啟");
         }
     } catch (err) {
-        console.warn("LIFF 初始化失敗或不在 LINE 環境中:", err);
+        console.warn("LIFF 啟動失敗", err);
         userName = "測試客戶"; 
     }
-
-    // 2. 更新名字顯示
     const displayEl = document.getElementById('display-name');
-    if (displayEl) {
-        displayEl.innerText = userName;
-    }
+    if (displayEl) displayEl.innerText = userName;
 
-    // 3. 執行同步與渲染
     syncMenuFromCloud();
-    
-    console.log("啟動程序完成，目前身分：" + userName);
 }); 
 
-// --- 3. 同步雲端菜單邏輯 ---
+// --- 3. 同步雲端菜單 ---
 async function syncMenuFromCloud() {
     try {
-        // 嘗試從 GAS 獲取最新菜單 (不強制，失敗則用預設)
         const response = await fetch(GAS_URL + "?type=getMenu");
         if (response.ok) {
             const cloudProducts = await response.json();
-            if (cloudProducts && cloudProducts.length > 0) {
-                products = cloudProducts;
-                console.log("雲端菜單同步成功");
-            }
+            if (cloudProducts.length > 0) products = cloudProducts;
         }
-    } catch (err) {
-        console.warn("使用預設菜單顯示");
-    } finally {
-        renderProducts("全部品項");
-    }
+    } catch (err) { console.warn("使用預設菜單"); }
+    renderProducts("全部品項");
 }
 
-// --- 4. 畫面渲染與操作功能 ---
+// --- 4. 渲染與操作 ---
 function saveCurrentInputs() {
     document.querySelectorAll('.item-card').forEach(card => {
         const input = card.querySelector('.qty-input');
@@ -76,12 +56,8 @@ function saveCurrentInputs() {
         const qty = input.value;
         const unitEl = card.querySelector('.unit-display-btn');
         const unit = unitEl ? unitEl.innerText.replace(' ▼','') : "台斤";
-        
-        if (qty > 0) {
-            currentInputCache[name] = { qty: qty, unit: unit };
-        } else {
-            delete currentInputCache[name];
-        }
+        if (qty > 0) currentInputCache[name] = { qty: qty, unit: unit };
+        else delete currentInputCache[name];
     });
 }
 
@@ -89,9 +65,7 @@ function renderProducts(category) {
     const list = document.getElementById('product-list');
     if (!list) return;
     list.innerHTML = ""; 
-    
     const filtered = (category === "全部品項") ? products : products.filter(p => p.cat === category);
-    
     filtered.forEach(p => {
         const cached = currentInputCache[p.name] || { qty: "", unit: p.unit };
         list.innerHTML += `
@@ -101,8 +75,7 @@ function renderProducts(category) {
                     <div class="item-info">規格:${p.unit} | 單價:${p.price}元</div>
                 </div>
                 <div class="item-controls">
-                    <input type="number" class="qty-input" placeholder="輸入數量" 
-                           data-name="${p.name}" value="${cached.qty}">
+                    <input type="number" class="qty-input" placeholder="輸入數量" data-name="${p.name}" value="${cached.qty}">
                     <div class="unit-selector-wrapper">
                         <div class="unit-display-btn" onclick="toggleUnitOptions(this)">${cached.unit} ▼</div>
                         <div class="unit-options">
@@ -135,78 +108,70 @@ function selectUnit(element, unit) {
     saveCurrentInputs();
 }
 
-// --- 5. 訂單邏輯 ---
+// --- 5. 訂單核心邏輯 ---
 function addToCart() {
     saveCurrentInputs();
-    let items = Object.keys(currentInputCache).map(name => ({
-        name: name, ...currentInputCache[name]
-    }));
+    let items = Object.keys(currentInputCache).map(name => {
+        const p = products.find(prod => prod.name === name);
+        return { name: name, ...currentInputCache[name], price: p ? p.price : 0 };
+    });
     
     if (items.length > 0) {
-        const orderId = "ORD-" + Date.now();
-        tempOrders.push({ 
-            id: orderId, 
-            time: new Date().toLocaleString(), 
-            items: items,
-            user: userName 
-        });
+        const orderId = "ORD-" + Date.now().toString().slice(-6);
+        tempOrders.push({ id: orderId, time: new Date().toLocaleString(), items: items, user: userName });
         currentInputCache = {};
-        alert("已存入我的訂單");
+        alert("已加入待送出清單");
         showPage('cart');
-    } else { 
-        alert("請輸入數量"); 
-    }
+    } else { alert("請先輸入數量"); }
 }
 
 async function sendOrder(id) {
     const idx = tempOrders.findIndex(o => o.id === id);
     if (idx === -1) return;
-    
     const order = tempOrders[idx];
-    alert("正在連線 Google 雲端...");
+    alert("正在連線 Google 雲端送出訂單...");
 
     try {
         await fetch(GAS_URL, {
-            method: "POST",
-            mode: "no-cors",
+            method: "POST", mode: "no-cors",
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(order)
         });
         finalizeOrder(idx, order); 
     } catch (err) {
-        console.log("網路連線異常，請檢查試算表", err);
         finalizeOrder(idx, order); 
     }
 }
 
 async function finalizeOrder(idx, orderData) {
     const finishedOrder = tempOrders.splice(idx, 1)[0];
-    finalHistory.push(finishedOrder);
+    
+    // 關鍵：將訂單存入手機長期記憶體
+    finalHistory.unshift(finishedOrder); // 新的排前面
+    if (finalHistory.length > 20) finalHistory.pop(); // 最多存20筆
+    localStorage.setItem('ng_history', JSON.stringify(finalHistory));
 
-    // --- 龍寶寶功能：回傳群組訊息 ---
+    // 自動發送 LINE 訊息回報
     if (liff.isInClient()) {
         try {
-            await liff.sendMessages([
-                {
-                    type: "text",
-                    text: `📢 【新訂單回報】\n👤 客戶：${userName}\n🆔 單號：${orderData.id}\n⏰ 時間：${orderData.time}\n------------------\n訂單已成功送出！`
-                }
-            ]);
+            await liff.sendMessages([{
+                type: "text",
+                text: `✅ 【能高訂單成功】\n客戶：${userName}\n單號：${orderData.id}\n時間：${orderData.time}\n\n訂單已進入後台處理中！`
+            }]);
         } catch (e) { console.log("訊息傳送受阻"); }
     }
 
-    alert("訂單傳送成功！");
-    showPage('history');
+    alert("訂單傳送成功！已存入您的歷史紀錄。");
+    showPage('history'); // 自動導向到紀錄頁面
 }
 
 function showPage(pageId) {
     document.querySelectorAll('.page-content').forEach(p => p.style.display = 'none');
     const target = document.getElementById(pageId + '-page');
-    if (!target) return;
-    target.style.display = (pageId === 'order') ? 'flex' : 'block';
+    if (target) target.style.display = (pageId === 'order') ? 'flex' : 'block';
     
     document.getElementById('header-title').innerText = 
-        (pageId==='order'?"今日訂單":pageId==='cart'?"我的訂單":pageId==='history'?"訂單記錄":"問題回報");
+        (pageId==='order'?"今日訂單":pageId==='cart'?"待送出清單":pageId==='history'?"訂購記錄":"問題回報");
     
     const mainBtn = document.getElementById('main-submit-btn');
     if (mainBtn) mainBtn.style.display = (pageId === 'order') ? 'block' : 'none';
@@ -218,12 +183,13 @@ function showPage(pageId) {
 function renderCart() {
     const list = document.getElementById('temp-order-list');
     if (!list) return;
-    list.innerHTML = tempOrders.length === 0 ? "<p style='padding:20px; color:#999;'>尚無暫存訂單</p>" : "";
+    list.innerHTML = tempOrders.length === 0 ? "<p class='empty-msg'>尚無待送出訂單</p>" : "";
     tempOrders.forEach(order => {
+        let itemSum = order.items.map(i => `${i.name} x${i.qty}${i.unit}`).join(', ');
         list.innerHTML += `<div class="history-card">
-            <h3>訂單編號: ${order.id}</h3>
-            <p>時間: ${order.time}</p>
-            <button onclick="sendOrder('${order.id}')" class="btn-green-sm">確認送出</button>
+            <div class="order-id">單號: ${order.id}</div>
+            <div class="order-detail">${itemSum}</div>
+            <button onclick="sendOrder('${order.id}')" class="btn-green-sm">確認送出訂單</button>
         </div>`;
     });
 }
@@ -231,53 +197,38 @@ function renderCart() {
 function renderHistory() {
     const list = document.getElementById('history-list');
     if(!list) return;
-    list.innerHTML = finalHistory.length === 0 ? "<p style='padding:20px; color:#999;'>尚無歷史紀錄</p>" : "";
+    list.innerHTML = finalHistory.length === 0 ? "<p class='empty-msg'>尚無歷史紀錄</p>" : "";
     finalHistory.forEach(order => {
-        list.innerHTML += `<div class="history-card">
-            <h3>單號: ${order.id}</h3>
-            <p>時間: ${order.time}</p>
-            <p style="color: #28a745;">狀態: 已同步雲端</p>
+        let itemDetails = order.items.map(i => `<li>${i.name} - ${i.qty}${i.unit}</li>`).join('');
+        list.innerHTML += `<div class="history-card history-done">
+            <div class="history-header">
+                <span class="order-id">單號: ${order.id}</span>
+                <span class="status-tag">已同步雲端</span>
+            </div>
+            <div class="order-time">${order.time}</div>
+            <ul class="detail-list">${itemDetails}</ul>
         </div>`;
     });
 }
 
-// --- 6. 問題回報邏輯 ---
+// --- 6. 問題回報 ---
 async function submitReport() {
-    const idEl = document.getElementById('rep-id');
-    const itemsEl = document.getElementById('rep-items');
-    if (!idEl || !itemsEl) return;
-
-    const orderIdValue = idEl.value.trim();
-    const contentValue = itemsEl.value.trim();
-
-    if (!orderIdValue || !contentValue) {
-        alert("請填寫完整資訊喔！");
-        return;
-    }
-
-    const reportData = {
-        type: "report",
-        user: userName,
-        orderId: orderIdValue,
-        content: contentValue
-    };
-
-    alert("正在連線雲端回報系統...");
-
+    const idValue = document.getElementById('rep-id').value.trim();
+    const contentValue = document.getElementById('rep-items').value.trim();
+    if (!idValue || !contentValue) { alert("請填寫完整資訊"); return; }
+    
+    alert("正在連線回報系統...");
     try {
         await fetch(GAS_URL, {
-            method: "POST",
-            mode: "no-cors",
+            method: "POST", mode: "no-cors",
             headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify(reportData)
+            body: JSON.stringify({ type: "report", user: userName, orderId: idValue, content: contentValue })
         });
-        alert("回報成功！我們將盡快處理。");
-        idEl.value = ""; 
-        itemsEl.value = "";
+        alert("回報成功！");
+        document.getElementById('rep-id').value = ""; 
+        document.getElementById('rep-items').value = "";
         showPage('order'); 
-    } catch (err) {
-        alert("傳送失敗，請檢查網路連線。");
-    }
+    } catch (err) { alert("傳送失敗"); }
 }
 
 
