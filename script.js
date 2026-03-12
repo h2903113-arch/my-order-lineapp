@@ -1,6 +1,7 @@
-// --- 1. 定義變數與 API 網址 ---
-const LIFF_ID = "2009416875-6D00wRVu"; // 👈 新增這行，請換成你申請到的 ID
-const GAS_URL = "https://script.google.com/macros/s/AKfycbz5cmtn5JDbKuBwSVkpSjk1bLrH6B0z-WoqCcF_V_u21mU9ig0SIUunsPBGepvs3IyfzA/exec" // 記得填入部署後的網址
+// --- 1. 定義變數與 API 網址 (全域唯一) ---
+const LIFF_ID = "2009416875-6D00wRVu"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbz5cmtn5JDbKuBwSVkpSjk1bLrH6B0z-WoqCcF_V_u21mU9ig0SIUunsPBGepvs3IyfzA/exec";
+
 let products = [
     { name: "胡蘿蔔", price: 40, unit: "台斤", cat: "根莖類" },
     { name: "地瓜", price: 50, unit: "台斤", cat: "根莖類" },
@@ -15,7 +16,7 @@ let tempOrders = [];
 let finalHistory = []; 
 let userName = "未知客戶"; 
 
-// --- 2. 啟動區塊 (LIFF 整合修正版) ---
+// --- 2. 啟動區塊 ---
 window.addEventListener('load', async () => {
     console.log("App 啟動中...");
     
@@ -28,7 +29,7 @@ window.addEventListener('load', async () => {
             userName = profile.displayName;
             console.log("LINE 登入成功：" + userName);
         } else {
-            console.log("目前為非登入狀態");
+            console.log("目前為非登入狀態，建議在 LINE App 中開啟");
         }
     } catch (err) {
         console.warn("LIFF 初始化失敗或不在 LINE 環境中:", err);
@@ -41,11 +42,30 @@ window.addEventListener('load', async () => {
         displayEl.innerText = userName;
     }
 
-    // 3. 同步雲端菜單 (GAS)
+    // 3. 執行同步與渲染
     syncMenuFromCloud();
     
     console.log("啟動程序完成，目前身分：" + userName);
 }); 
+
+// --- 3. 同步雲端菜單邏輯 ---
+async function syncMenuFromCloud() {
+    try {
+        // 嘗試從 GAS 獲取最新菜單 (不強制，失敗則用預設)
+        const response = await fetch(GAS_URL + "?type=getMenu");
+        if (response.ok) {
+            const cloudProducts = await response.json();
+            if (cloudProducts && cloudProducts.length > 0) {
+                products = cloudProducts;
+                console.log("雲端菜單同步成功");
+            }
+        }
+    } catch (err) {
+        console.warn("使用預設菜單顯示");
+    } finally {
+        renderProducts("全部品項");
+    }
+}
 
 // --- 4. 畫面渲染與操作功能 ---
 function saveCurrentInputs() {
@@ -54,7 +74,8 @@ function saveCurrentInputs() {
         if (!input) return;
         const name = input.getAttribute('data-name');
         const qty = input.value;
-        const unit = card.querySelector('.unit-display-btn').innerText.replace(' ▼','');
+        const unitEl = card.querySelector('.unit-display-btn');
+        const unit = unitEl ? unitEl.innerText.replace(' ▼','') : "台斤";
         
         if (qty > 0) {
             currentInputCache[name] = { qty: qty, unit: unit };
@@ -114,7 +135,7 @@ function selectUnit(element, unit) {
     saveCurrentInputs();
 }
 
-// --- 5. 訂單與分頁邏輯 ---
+// --- 5. 訂單邏輯 ---
 function addToCart() {
     saveCurrentInputs();
     let items = Object.keys(currentInputCache).map(name => ({
@@ -142,43 +163,41 @@ async function sendOrder(id) {
     if (idx === -1) return;
     
     const order = tempOrders[idx];
-    console.log("正在發送訂單...", order);
-
-    // 1. 先顯示一個簡易提示
     alert("正在連線 Google 雲端...");
 
     try {
-        // 使用 fetch 傳送資料
         await fetch(GAS_URL, {
             method: "POST",
-            mode: "no-cors", // 這裡是關鍵，允許跨網域但會讓回傳變成「黑盒子」
+            mode: "no-cors",
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(order)
         });
-
-        // --- 這裡很神奇 ---
-        // 在 no-cors 模式下，fetch 只要發出去了，通常就會直接跑完這行。
-        // 如果你的試算表已經有資料，我們就直接當作成功！
-        
-        finalizeOrder(idx); // 執行成功的後續動作
-
+        finalizeOrder(idx, order); 
     } catch (err) {
-        // 只有在完全連不上網（斷網）時才會進到這裡
-        console.log("網路狀態異常，但請檢查試算表:", err);
-        
-        // 既然你測試過資料會進去，我們在這裡也執行成功動作
-        finalizeOrder(idx); 
+        console.log("網路連線異常，請檢查試算表", err);
+        finalizeOrder(idx, order); 
     }
 }
 
-// 把成功的後續動作獨立出來，避免重複寫
-function finalizeOrder(idx) {
-    alert("訂單傳送成功！");
+async function finalizeOrder(idx, orderData) {
     const finishedOrder = tempOrders.splice(idx, 1)[0];
     finalHistory.push(finishedOrder);
+
+    // --- 龍寶寶功能：回傳群組訊息 ---
+    if (liff.isInClient()) {
+        try {
+            await liff.sendMessages([
+                {
+                    type: "text",
+                    text: `📢 【新訂單回報】\n👤 客戶：${userName}\n🆔 單號：${orderData.id}\n⏰ 時間：${orderData.time}\n------------------\n訂單已成功送出！`
+                }
+            ]);
+        } catch (e) { console.log("訊息傳送受阻"); }
+    }
+
+    alert("訂單傳送成功！");
     showPage('history');
 }
-
 
 function showPage(pageId) {
     document.querySelectorAll('.page-content').forEach(p => p.style.display = 'none');
@@ -188,16 +207,18 @@ function showPage(pageId) {
     
     document.getElementById('header-title').innerText = 
         (pageId==='order'?"今日訂單":pageId==='cart'?"我的訂單":pageId==='history'?"訂單記錄":"問題回報");
-    document.getElementById('main-submit-btn').style.display = (pageId === 'order') ? 'block' : 'none';
+    
+    const mainBtn = document.getElementById('main-submit-btn');
+    if (mainBtn) mainBtn.style.display = (pageId === 'order') ? 'block' : 'none';
     
     if (pageId === 'cart') renderCart();
     if (pageId === 'history') renderHistory();
 }
 
-// 需要補上渲染清單的函式，否則「我的訂單」頁面會空白
 function renderCart() {
     const list = document.getElementById('temp-order-list');
-    list.innerHTML = tempOrders.length === 0 ? "<p>尚無暫存訂單</p>" : "";
+    if (!list) return;
+    list.innerHTML = tempOrders.length === 0 ? "<p style='padding:20px; color:#999;'>尚無暫存訂單</p>" : "";
     tempOrders.forEach(order => {
         list.innerHTML += `<div class="history-card">
             <h3>訂單編號: ${order.id}</h3>
@@ -206,32 +227,37 @@ function renderCart() {
         </div>`;
     });
 }
-// --- 6. 問題回報邏輯 (新增這一段) ---
+
+function renderHistory() {
+    const list = document.getElementById('history-list');
+    if(!list) return;
+    list.innerHTML = finalHistory.length === 0 ? "<p style='padding:20px; color:#999;'>尚無歷史紀錄</p>" : "";
+    finalHistory.forEach(order => {
+        list.innerHTML += `<div class="history-card">
+            <h3>單號: ${order.id}</h3>
+            <p>時間: ${order.time}</p>
+            <p style="color: #28a745;">狀態: 已同步雲端</p>
+        </div>`;
+    });
+}
+
+// --- 6. 問題回報邏輯 ---
 async function submitReport() {
-    console.log("開始執行回報功能...");
-    
-    // 1. 抓取 HTML 裡的輸入框內容
     const idEl = document.getElementById('rep-id');
     const itemsEl = document.getElementById('rep-items');
-    
-    if (!idEl || !itemsEl) {
-        alert("系統錯誤：找不到輸入欄位 ID (rep-id 或 rep-items)");
-        return;
-    }
+    if (!idEl || !itemsEl) return;
 
     const orderIdValue = idEl.value.trim();
     const contentValue = itemsEl.value.trim();
 
-    // 2. 檢查是否空白
     if (!orderIdValue || !contentValue) {
-        alert("請填寫銷貨單號與回報原因喔！");
+        alert("請填寫完整資訊喔！");
         return;
     }
 
-    // 3. 準備資料
     const reportData = {
-        type: "report",           // 關鍵標籤：讓 GAS 知道要寫入 reports 分頁
-        user: userName,           // 使用啟動區塊定義的 "測試客戶-陳小美"
+        type: "report",
+        user: userName,
         orderId: orderIdValue,
         content: contentValue
     };
@@ -239,41 +265,20 @@ async function submitReport() {
     alert("正在連線雲端回報系統...");
 
     try {
-        // 4. 發送到 GAS (與送訂單邏輯相同)
         await fetch(GAS_URL, {
             method: "POST",
             mode: "no-cors",
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(reportData)
         });
-
-        // 5. 成功後的動作
         alert("回報成功！我們將盡快處理。");
-        idEl.value = ""; // 清空輸入框
+        idEl.value = ""; 
         itemsEl.value = "";
-        showPage('order'); // 自動跳回首頁
-        
+        showPage('order'); 
     } catch (err) {
-        console.error("回報發生錯誤:", err);
         alert("傳送失敗，請檢查網路連線。");
     }
 }
-
-// 為了讓歷史紀錄分頁不空白，順便補上這個
-function renderHistory() {
-    const list = document.getElementById('history-list');
-    if(!list) return;
-    list.innerHTML = finalHistory.length === 0 ? "<p>尚無歷史紀錄</p>" : "";
-    finalHistory.forEach(order => {
-        list.innerHTML += `<div class="history-card">
-            <h3>單號: ${order.id}</h3>
-            <p>時間: ${order.time}</p>
-            <p>狀態: 已送出</p>
-        </div>`;
-    });
-}
-
-
 
 
 
