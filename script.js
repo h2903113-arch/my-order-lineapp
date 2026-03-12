@@ -175,7 +175,14 @@ function showPage(pageId) {
     
     const mainBtn = document.getElementById('main-submit-btn');
     if (mainBtn) mainBtn.style.display = (pageId === 'order') ? 'block' : 'none';
-    
+    // --- 新功能：讓底部選單文字根據頁面變色 ---
+    document.querySelectorAll('.nav-icon').forEach(icon => {
+        icon.classList.remove('active-nav');
+        // 如果按鈕的 onclick 包含該 pageId，就給它高亮
+        if (icon.getAttribute('onclick').includes(pageId)) {
+            icon.classList.add('active-nav');
+        }
+    });
     if (pageId === 'cart') renderCart();
     if (pageId === 'history') renderHistory();
 }
@@ -230,6 +237,7 @@ async function submitReport() {
         showPage('order'); 
     } catch (err) { alert("傳送失敗"); }
 }
+
 
 
 
