@@ -177,6 +177,16 @@ function showPage(pageId) {
     
     const mainBtn = document.getElementById('main-submit-btn');
     if (mainBtn) mainBtn.style.display = (pageId === 'order') ? 'block' : 'none';
+   
+    // 4. --- 新增在這裡：根據頁面觸發功能 ---
+    if (pageId === 'history') {
+        renderHistory(); // 只要切換到歷史紀錄頁，就立刻畫出卡片
+    }
+    
+    if (pageId === 'cart') {
+        renderCart(); // 如果你有寫購物車渲染函數，也順便放在這
+    }
+    
     // --- 新功能：讓底部選單文字根據頁面變色 ---
     document.querySelectorAll('.nav-icon').forEach(icon => {
         icon.classList.remove('active-nav');
@@ -204,26 +214,31 @@ function renderCart() {
 }
 
 function renderHistory() {
-    const list = document.getElementById('final-history-list'); // 對應 HTML id
+    // 1. 抓取正確的 HTML 位置
+    const list = document.getElementById('final-history-list');
     if (!list) return;
 
-    // --- 5日自動清理 ---
+    // 2. 執行 5 日清理
     const now = new Date().getTime();
     const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
     finalHistory = finalHistory.filter(order => {
+        // 確保 order.time 存在且格式正確
         const orderDate = new Date(order.time).getTime();
         return (now - orderDate) < fiveDaysInMs;
     });
     localStorage.setItem('ng_history', JSON.stringify(finalHistory));
 
+    // 3. 如果沒資料，顯示提示
     if (finalHistory.length === 0) {
-        list.innerHTML = `<div class="empty-msg" style="text-align:center; padding:50px; color:#999;">目前尚無紀錄</div>`;
+        list.innerHTML = `<div class="empty-msg" style="text-align:center; padding:50px; color:#999;">目前尚無 5 日內的訂購紀錄</div>`;
         return;
     }
 
+    // 4. 卡片 
     list.innerHTML = "";
     finalHistory.forEach((order, index) => {
         const itemsHtml = order.items.map(i => `<li>${i.name} - ${i.qty}${i.unit}</li>`).join('');
+        
         list.innerHTML += `
             <div class="history-card">
                 <div class="history-header">
@@ -232,9 +247,14 @@ function renderHistory() {
                 </div>
                 <div class="order-time-info">
                     成立日期：${order.time.split(' ')[0]}<br>
-                    成立時間：${order.time.split(' ')[1]}
+                    成立時間：${order.time.split(' ')[1] || ''}
                 </div>
-                <ul class="detail-list">${itemsHtml}</ul>
+                <ul class="detail-list">
+                    ${itemsHtml}
+                </ul>
+                <div style="text-align:right; margin-top:10px;">
+                    <button class="check-btn" style="background:#4a6741; color:white; border:none; padding:5px 12px; border-radius:5px; font-size:12px;">查看訂單</button>
+                </div>
             </div>`;
     });
 }
@@ -258,6 +278,7 @@ async function submitReport() {
         showPage('order'); 
     } catch (err) { alert("傳送失敗"); }
 }
+
 
 
 
