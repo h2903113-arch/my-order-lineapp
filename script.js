@@ -211,31 +211,38 @@ function renderCart() {
 }
 
 function renderHistory() {
-    // 1. 抓取正確的 HTML 位置
     const list = document.getElementById('final-history-list');
     if (!list) return;
 
-    // 2. 執行 5 日清理
+    // 1. 強健的清理邏輯
     const now = new Date().getTime();
     const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
+    
     finalHistory = finalHistory.filter(order => {
-        // 確保 order.time 存在且格式正確
+        if (!order.time) return false; // 沒時間的訂單才刪掉
         const orderDate = new Date(order.time).getTime();
+        // 如果時間解析失敗 (NaN)，我們選擇保留它不刪除，避免畫面空白
+        if (isNaN(orderDate)) return true; 
         return (now - orderDate) < fiveDaysInMs;
     });
     localStorage.setItem('ng_history', JSON.stringify(finalHistory));
 
-    // 3. 如果沒資料，顯示提示
+    // 2. 沒資料時的處理
     if (finalHistory.length === 0) {
-        list.innerHTML = `<div class="empty-msg" style="text-align:center; padding:50px; color:#999;">目前尚無 5 日內的訂購紀錄</div>`;
+        list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">目前尚無 5 日內的訂購紀錄</div>`;
         return;
     }
 
-    // 4. 卡片 
+    // 3. 渲染卡片
     list.innerHTML = "";
     finalHistory.forEach((order, index) => {
-        const itemsHtml = order.items.map(i => `<li>${i.name} - ${i.qty}${i.unit}</li>`).join('');
+        const itemsHtml = order.items ? order.items.map(i => `<li>${i.name} - ${i.qty}${i.unit}</li>`).join('') : '<li>無品項資料</li>';
         
+        // 分離日期的安全處理：防止 split 失敗
+        const timeParts = order.time ? order.time.split(' ') : ['未知日期', ''];
+        const dateStr = timeParts[0];
+        const timeStr = timeParts[1] || '';
+
         list.innerHTML += `
             <div class="history-card">
                 <div class="history-header">
@@ -243,8 +250,8 @@ function renderHistory() {
                     <span class="status-badge">成功送出</span>
                 </div>
                 <div class="order-time-info">
-                    成立日期：${order.time.split(' ')[0]}<br>
-                    成立時間：${order.time.split(' ')[1] || ''}
+                    成立日期：${dateStr}<br>
+                    成立時間：${timeStr}
                 </div>
                 <ul class="detail-list">
                     ${itemsHtml}
@@ -275,6 +282,7 @@ async function submitReport() {
         showPage('order'); 
     } catch (err) { alert("傳送失敗"); }
 }
+
 
 
 
